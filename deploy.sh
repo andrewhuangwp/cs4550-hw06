@@ -26,3 +26,7 @@ npm run deploy --prefix ./assets
 mix phx.digest
 
 mix release
+
+echo "Starting app..."
+
+PROD=t ./start.sh
