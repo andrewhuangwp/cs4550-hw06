@@ -1,0 +1,16 @@
+[Unit]
+Description=Bulls and Cows Game
+
+[Service]
+Type=simple
+User=hw05
+Group=hw05
+Restart=on-failure
+Environment=MIX_ENV=prod "PORT=4791"
+Environment=LANG=en_US.UTF-8
+
+WorkingDirectory=/home/hw05/cs4550-hw05
+ExecStart=/home/hw05/cs4550-hw05/start.sh
+
+[Install]
+WantedBy=multi-user.target
