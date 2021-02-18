@@ -2,7 +2,7 @@
 # This is deploy.sh
 
 export MIX_ENV=prod
-export PORT=4801
+export PORT=4792
 export SECRET_KEY_BASE=insecure
 
 mix deps.get --only prod
