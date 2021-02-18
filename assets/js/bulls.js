@@ -8,7 +8,7 @@ function GameOver(props) {
     <div className="GameOver">
       <h1>Game Over!</h1>
       <h1>{won ? "You won!" : "You lost!"}</h1>
-      <p>{secret? "The secret number was " + secret : ""}</p>
+      <p>{secret ? "The secret number was " + secret : ""}</p>
       <p>
         <button onClick={reset}>Reset</button>
       </p>
@@ -70,15 +70,16 @@ function Bulls() {
     }
   }
 
-  // Update guess based on user input. Only allow numerical inputs. 
+  // Update guess based on user input. Only allow numerical inputs.
   function updateGuess(event) {
     const re = /^[0-9\b]+$/;
-    if (event.target.value === '' || re.test(event.target.value)) {
+    if (event.target.value === "" || re.test(event.target.value)) {
       setGuess(event.target.value);
-   }
+    }
   }
 
-  let body = null, gameover = null;
+  let body = null,
+    gameover = null;
 
   body = (
     <div className="App">
@@ -110,10 +111,15 @@ function Bulls() {
     let secret_num = guesses[guesses.length - 1];
     gameover = <GameOver reset={reset} won={true} secret={secret_num} />;
   } else if (lives < 1) {
-    gameover = <GameOver reset={reset} won={false}/>;
+    gameover = <GameOver reset={reset} won={false} />;
   }
 
-  return <div className="container">{gameover}{body}</div>;
+  return (
+    <div className="container">
+      {gameover}
+      {body}
+    </div>
+  );
 }
 
 export default Bulls;
