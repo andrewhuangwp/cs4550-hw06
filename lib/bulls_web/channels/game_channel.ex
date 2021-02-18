@@ -7,10 +7,13 @@ defmodule BullsWeb.GameChannel do
   @impl true
   def join("game:" <> name, payload, socket) do
     if authorized?(payload) do
-      game = BackupAgent.get(name) || Game.new
-      socket = socket
-      |> assign(:name, name)
-      |> assign(:game, game)
+      game = BackupAgent.get(name) || Game.new()
+
+      socket =
+        socket
+        |> assign(:name, name)
+        |> assign(:game, game)
+
       BackupAgent.put(name, game)
       view = Game.view(game)
       {:ok, view, socket}
@@ -33,7 +36,7 @@ defmodule BullsWeb.GameChannel do
   # Handle reset messages.
   @impl true
   def handle_in("reset", _, socket) do
-    game = Game.new
+    game = Game.new()
     name = socket.assigns[:name]
     socket = assign(socket, :game, game)
     BackupAgent.put(name, game)
