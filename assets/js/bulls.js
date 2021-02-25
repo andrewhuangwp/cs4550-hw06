@@ -16,20 +16,38 @@ function GameOver(props) {
   );
 }
 
+function Login() {
+  const [name, setName] = useState("");
+
+  return (
+    <div className="row">
+      <div className="column">
+        <input type="text"
+               value={name}
+               onChange={(ev) => setName(ev.target.value)} />
+      </div>
+      <div className="column">
+        <button onClick={() => ch_login(name)}>Join</button>
+      </div>
+    </div>
+  );
+}
+
 // Referenced React and Hangman code on Prof. Tuck's scratch repo.
-function Bulls() {
+function Play() {
   const [state, setState] = useState({
     secret: "????",
     guesses: [],
     gameOver: false,
     bulls: [],
     cows: [],
+    name: "",
   });
 
   // Controlled input that requires separate useState hook
   const [guess, setGuess] = useState("");
 
-  let { secret, guesses, gameOver, bulls, cows } = state;
+  let { secret, guesses, gameOver, bulls, cows, name } = state;
 
   let lives = 8 - guesses.length;
 
@@ -117,6 +135,35 @@ function Bulls() {
   return (
     <div className="container">
       {gameover}
+      {body}
+    </div>
+  );
+}
+
+function Bulls() {
+  const [state, setState] = useState({
+    secret: "????",
+    guesses: [],
+    gameOver: false,
+    bulls: [],
+    cows: [],
+    name: "",
+  });
+
+  useEffect(() => {
+    ch_join(setState);
+  });
+  let body = null;
+
+  if (state.name === "") {
+    body = <Login />
+  }
+  else {
+    body = <Play state={state} />;
+  }
+
+  return (
+    <div className="container">
       {body}
     </div>
   );

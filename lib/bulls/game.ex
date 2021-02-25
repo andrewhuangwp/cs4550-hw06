@@ -80,7 +80,7 @@ defmodule Bulls.Game do
     end
   end
 
-  def view(state) do
+  def view(state, user) do
     if Enum.member?(state.guesses, state.secret) do
       %{
         secret: "????",
@@ -88,6 +88,7 @@ defmodule Bulls.Game do
         gameOver: true,
         bulls: state.bulls,
         cows: state.cows
+        name: user
       }
     else
       if Enum.count(state.guesses) == 8 do
@@ -97,6 +98,7 @@ defmodule Bulls.Game do
           gameOver: true,
           bulls: state.bulls,
           cows: state.cows
+          name: user
         }
       else
         %{
@@ -105,6 +107,7 @@ defmodule Bulls.Game do
           gameOver: false,
           bulls: state.bulls,
           cows: state.cows
+          name: user
         }
       end
     end
