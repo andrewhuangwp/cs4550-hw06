@@ -1,4 +1,4 @@
-defmodule Hangman.GameServer do
+defmodule Bulls.GameServer do
   use GenServer
 
   alias Bulls.BackupAgent
@@ -21,12 +21,16 @@ defmodule Hangman.GameServer do
   end
 
   def start_link(name) do
-    game = BackupAgent.get(name) || Game.new
+    game = BackupAgent.get(name) || Game.new(name)
     GenServer.start_link(
       __MODULE__,
       game,
       name: reg(name)
     )
+  end
+
+  def join(name, username) do
+    GenServer.call(__MODULE__, {:join, name, username})
   end
 
   def reset(name) do
@@ -44,7 +48,7 @@ defmodule Hangman.GameServer do
   # implementation
 
   def init(game) do
-    Process.send_after(self(), :pook, 10_000)
+    #Process.send_after(self(), :pook, 10_000)
     {:ok, game}
   end
 
@@ -67,7 +71,7 @@ defmodule Hangman.GameServer do
   def handle_info(:pook, game) do
     game = Game.guess(game, "q")
     BullsWeb.Endpoint.broadcast!(
-      "game:1", # FIXME: Game name should be in state
+      "game:1",
       "view",
       Game.view(game, ""))
     {:noreply, game}

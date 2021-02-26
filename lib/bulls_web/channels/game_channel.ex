@@ -2,11 +2,11 @@ defmodule BullsWeb.GameChannel do
   use BullsWeb, :channel
 
   alias Bulls.Game
-  alias Bulls.BackupAgent
   alias Bulls.GameServer
 
   @impl true
   def join("game:" <> name, payload, socket) do
+    IO.puts(name)
     if authorized?(payload) do
       GameServer.start(name)
       socket = socket
@@ -21,11 +21,13 @@ defmodule BullsWeb.GameChannel do
   end
 
   @impl true
-  def handle_in("login", %{"name" => user}, socket) do
-    socket = assign(socket, :user, user)
-    view = socket.assigns[:name]
+  def handle_in("login", %{"user" => user, "name" => name}, socket) do
+    GameServer.start(name)
+    socket = socket
+    |> assign(:name, name)
+    |> assign(:user, user)
+    view = GameServer.join(name, socket)
     |> GameServer.peek()
-    |> Game.view(user)
     {:reply, {:ok, view}, socket}
   end
 

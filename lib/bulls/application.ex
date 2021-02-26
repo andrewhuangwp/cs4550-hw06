@@ -7,6 +7,7 @@ defmodule Bulls.Application do
 
   def start(_type, _args) do
     children = [
+      Bulls.GameSup,
       # Start the Telemetry supervisor
       BullsWeb.Telemetry,
       # Start the PubSub system

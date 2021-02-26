@@ -1,12 +1,34 @@
 defmodule Bulls.Game do
+
+  def join(game, username) do
+    players = game.players ++ [username]
+    guesses = Map.put_new(game.guesses, username, [])
+    bulls = Map.put_new(game.bulls, username, [])
+    cows = Map.put_new(game.cows, username, [])
+    Map.put(game, :players, players)
+    Map.put(game, :guesses, guesses)
+    Map.put(game, :bulls, bulls)
+    Map.put(game, :cows, cows)
+    game
+  end
+
+  def join_observer(game, username) do
+    observers = game.observers ++ [username]
+    Map.put(game, :observers, observers)
+    game
+  end
+
   # Attribution: Lecture 7 notes from Prof. Tuck's CS4550 section
-  def new do
+  def new(name) do
     %{
+      players: [],
+      observers: [],
       secret: random_secret([]),
-      guesses: [],
+      guesses: %{},
       gameOver: false,
-      bulls: [],
-      cows: []
+      bulls: %{},
+      cows: %{},
+      name: name
     }
   end
 
@@ -87,7 +109,7 @@ defmodule Bulls.Game do
         guesses: state.guesses,
         gameOver: true,
         bulls: state.bulls,
-        cows: state.cows
+        cows: state.cows,
         name: user
       }
     else
@@ -97,7 +119,7 @@ defmodule Bulls.Game do
           guesses: state.guesses,
           gameOver: true,
           bulls: state.bulls,
-          cows: state.cows
+          cows: state.cows,
           name: user
         }
       else
@@ -106,7 +128,7 @@ defmodule Bulls.Game do
           guesses: state.guesses,
           gameOver: false,
           bulls: state.bulls,
-          cows: state.cows
+          cows: state.cows,
           name: user
         }
       end
