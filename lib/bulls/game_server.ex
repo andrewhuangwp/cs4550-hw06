@@ -30,7 +30,7 @@ defmodule Bulls.GameServer do
   end
 
   def join(name, username) do
-    GenServer.call(__MODULE__, {:join, name, username})
+    GenServer.call(reg(name), {:join, name, username})
   end
 
   def reset(name) do
@@ -52,8 +52,14 @@ defmodule Bulls.GameServer do
     {:ok, game}
   end
 
+  def handle_call({:join, name, username}, _from, game) do
+    game = Game.join(game, username)
+    BackupAgent.put(name, game)
+    {:reply, game, game}
+  end
+
   def handle_call({:reset, name}, _from, game) do
-    game = Game.new
+    game = Game.new(name)
     BackupAgent.put(name, game)
     {:reply, game, game}
   end
@@ -71,7 +77,7 @@ defmodule Bulls.GameServer do
   def handle_info(:pook, game) do
     game = Game.guess(game, "q")
     BullsWeb.Endpoint.broadcast!(
-      "game:1",
+      "game:7",
       "view",
       Game.view(game, ""))
     {:noreply, game}

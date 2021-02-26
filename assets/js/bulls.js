@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { ch_join, ch_push, ch_reset, ch_login } from "./socket";
+import { ch_join, ch_push, ch_reset, ch_login, ch_join_channel } from "./socket";
+import socket from "./socket";
 
 function GameOver(props) {
   let { reset, won, secret } = props;
@@ -20,6 +21,10 @@ function Login() {
   const [name, setName] = useState("");
   const [user, setUser] = useState("");
 
+  function connect(name, user) {
+    ch_join_channel(name, user);
+  }
+
   return (
     <div className="row">
       <div className="column">
@@ -35,11 +40,12 @@ function Login() {
                onChange={(ev) => setUser(ev.target.value)} />
       </div>
       <div className="column">
-        <button onClick={() => ch_login(name, user)}>Join</button>
+        <button onClick={() => connect(name, user)}>Join</button>
       </div>
     </div>
   );
 }
+
 
 // Referenced React and Hangman code on Prof. Tuck's scratch repo.
 function Play({state}) {
@@ -146,6 +152,8 @@ function Bulls() {
     cows: [],
     name: "",
   });
+
+  console.log(state);
 
   useEffect(() => {
     ch_join(setState);

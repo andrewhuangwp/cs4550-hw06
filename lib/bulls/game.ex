@@ -5,11 +5,7 @@ defmodule Bulls.Game do
     guesses = Map.put_new(game.guesses, username, [])
     bulls = Map.put_new(game.bulls, username, [])
     cows = Map.put_new(game.cows, username, [])
-    Map.put(game, :players, players)
-    Map.put(game, :guesses, guesses)
-    Map.put(game, :bulls, bulls)
-    Map.put(game, :cows, cows)
-    game
+    %{game | players: players, guesses: guesses, bulls: bulls, cows: cows}
   end
 
   def join_observer(game, username) do
@@ -102,34 +98,40 @@ defmodule Bulls.Game do
     end
   end
 
-  def view(state, user) do
+  def view(state) do
     if Enum.member?(state.guesses, state.secret) do
       %{
         secret: "????",
+        players: state.players,
+        observers: state.observers,
         guesses: state.guesses,
         gameOver: true,
         bulls: state.bulls,
         cows: state.cows,
-        name: user
+        name: state.name
       }
     else
       if Enum.count(state.guesses) == 8 do
         %{
           secret: "????",
           guesses: state.guesses,
+          players: state.players,
+          observers: state.observers,
           gameOver: true,
           bulls: state.bulls,
           cows: state.cows,
-          name: user
+          name: state.name
         }
       else
         %{
           secret: "????",
           guesses: state.guesses,
+          players: state.players,
+          observers: state.observers,
           gameOver: false,
           bulls: state.bulls,
           cows: state.cows,
-          name: user
+          name: state.name
         }
       end
     end

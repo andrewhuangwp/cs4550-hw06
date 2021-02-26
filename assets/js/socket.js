@@ -56,11 +56,17 @@ socket.connect();
 
 // Now that you are connected, you can join channels with a topic:
 // Attribution: Lecture 7 notes from Prof. Tuck's CS4550 section
-let channel = socket.channel("game:1", {});
+let channel;
 
 let state = {
+  players: [],
+  observers: [],
   secret: "????",
   guesses: [],
+  gameOver: false,
+  bulls: [],
+  cows: [],
+  name: "",
 };
 
 let callback = null;
@@ -74,8 +80,25 @@ function state_update(st) {
 }
 
 export function ch_join(cb) {
+  console.log("reached")
   callback = cb;
   callback(state);
+}
+
+export function ch_join_channel(name, user) {
+  let channel = socket.channel("game:" + name, {});
+  channel
+    .join()
+    .receive("ok", state_update)
+    .receive("error", (resp) => {
+      console.log("Unable to join", resp);
+    });
+  channel
+    .push("login", { name: name, user: user })
+    .receive("ok", state_update)
+    .receive("error", (resp) => {
+      console.log("Unable to push", resp);
+    });
 }
 
 export function ch_push(guess) {
@@ -96,19 +119,13 @@ export function ch_reset() {
     });
 }
 
-export function ch_login(name) {
-  channel.push("login", {name: name})
-         .receive("ok", state_update)
-         .receive("error", resp => {
-           console.log("Unable to push", resp)
-         });
+export function ch_login(name, user) {
+  channel
+    .push("login", { name: name, user: user })
+    .receive("ok", state_update)
+    .receive("error", (resp) => {
+      console.log("Unable to push", resp);
+    });
 }
-
-channel
-  .join()
-  .receive("ok", state_update)
-  .receive("error", (resp) => {
-    console.log("Unable to join", resp);
-  });
 
 export default socket;

@@ -6,14 +6,13 @@ defmodule BullsWeb.GameChannel do
 
   @impl true
   def join("game:" <> name, payload, socket) do
-    IO.puts(name)
     if authorized?(payload) do
       GameServer.start(name)
       socket = socket
       |> assign(:name, name)
       |> assign(:user, "")
       game = GameServer.peek(name)
-      view = Game.view(game, "")
+      view = Game.view(game)
       {:ok, view, socket}
     else
       {:error, %{reason: "unauthorized"}}
@@ -22,12 +21,8 @@ defmodule BullsWeb.GameChannel do
 
   @impl true
   def handle_in("login", %{"user" => user, "name" => name}, socket) do
-    GameServer.start(name)
-    socket = socket
-    |> assign(:name, name)
-    |> assign(:user, user)
-    view = GameServer.join(name, socket)
-    |> GameServer.peek()
+    game = GameServer.peek(name)
+    view = GameServer.join(name, user)
     {:reply, {:ok, view}, socket}
   end
 
@@ -37,7 +32,7 @@ defmodule BullsWeb.GameChannel do
     user = socket.assigns[:user]
     view = socket.assigns[:name]
     |> GameServer.guess(gs)
-    |> Game.view(user)
+    |> Game.view()
     broadcast(socket, "view", view)
     {:reply, {:ok, view}, socket}
   end
@@ -48,7 +43,7 @@ defmodule BullsWeb.GameChannel do
     user = socket.assigns[:user]
     view = socket.assigns[:name] # game name
     |> GameServer.reset()
-    |> Game.view(user)
+    |> Game.view()
     broadcast(socket, "view", view)
     {:reply, {:ok, view}, socket}
   end
