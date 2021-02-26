@@ -29,20 +29,24 @@ defmodule Bulls.GameServer do
     )
   end
 
-  def join(name, username) do
-    GenServer.call(reg(name), {:join, name, username})
+  def join(name, username, player) do
+    GenServer.call(reg(name), {:join, name, username, player})
   end
 
   def reset(name) do
     GenServer.call(reg(name), {:reset, name})
   end
 
-  def guess(name, num) do
-    GenServer.call(reg(name), {:guess, name, num})
+  def guess(gs, name, user) do
+    GenServer.call(reg(name), {:guess, gs, name, user})
   end
 
   def peek(name) do
     GenServer.call(reg(name), {:peek, name})
+  end
+
+  def start_game(name) do
+    GenServer.call(reg(name), {:start_game, name})
   end
 
   # implementation
@@ -52,20 +56,27 @@ defmodule Bulls.GameServer do
     {:ok, game}
   end
 
-  def handle_call({:join, name, username}, _from, game) do
-    game = Game.join(game, username)
+  def handle_call({:join, name, username, player}, _from, game) do
+    game = Game.join(game, username, player)
     BackupAgent.put(name, game)
     {:reply, game, game}
   end
 
-  def handle_call({:reset, name}, _from, game) do
+  def handle_call({:start_game, name}, _from, game) do
+    game = Game.start(game)
+    BackupAgent.put(name, game)
+    schedule_evaluate()
+    {:reply, game, game}
+  end
+
+  def handle_call({:reset, name}, _from, _game) do
     game = Game.new(name)
     BackupAgent.put(name, game)
     {:reply, game, game}
   end
 
-  def handle_call({:guess, name, letter}, _from, game) do
-    game = Game.guess(game, letter)
+  def handle_call({:guess, gs, name, user}, _from, game) do
+    game = Game.guess(game, gs, user)
     BackupAgent.put(name, game)
     {:reply, game, game}
   end
@@ -74,12 +85,25 @@ defmodule Bulls.GameServer do
     {:reply, game, game}
   end
 
-  def handle_info(:pook, game) do
-    game = Game.guess(game, "q")
-    BullsWeb.Endpoint.broadcast!(
-      "game:7",
+  def schedule_evaluate() do
+    Process.send_after(self(), :evaluate, 30 * 1000)
+  end
+
+  def handle_info(:evaluate, game) do
+    if game.winners == [] and game.players != [] and game.round != 0 do
+      game = Game.evaluate(game)
+      name = "game:" <> game.name
+      BackupAgent.put(game.name, game)
+      if game.winners == [] and game.players != [] do
+        schedule_evaluate()
+      end
+      BullsWeb.Endpoint.broadcast!(
+      name,
       "view",
-      Game.view(game, ""))
-    {:noreply, game}
+      Game.view(game, game.user))
+      {:noreply, game}
+    else
+      {:noreply, game}
+    end
   end
 end

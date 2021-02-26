@@ -63,15 +63,17 @@ let state = {
   observers: [],
   secret: "????",
   guesses: [],
-  gameOver: false,
   bulls: [],
   cows: [],
   name: "",
+  user: "",
+  round: 0,
+  winners: []
 };
 
 let callback = null;
 
-function state_update(st) {
+export function state_update(st) {
   console.log("New state", st);
   state = st;
   if (callback) {
@@ -79,14 +81,20 @@ function state_update(st) {
   }
 }
 
+function broadcast_update(st) {
+  const user = state.user;
+  state = st;
+  state.user = user;
+  state_update(state);
+}
+
 export function ch_join(cb) {
-  console.log("reached")
   callback = cb;
   callback(state);
 }
 
-export function ch_join_channel(name, user) {
-  let channel = socket.channel("game:" + name, {});
+export function ch_join_channel(name, user, player) {
+  channel = socket.channel("game:" + name, {});
   channel
     .join()
     .receive("ok", state_update)
@@ -94,16 +102,17 @@ export function ch_join_channel(name, user) {
       console.log("Unable to join", resp);
     });
   channel
-    .push("login", { name: name, user: user })
+    .push("login", { name: name, user: user, player: player })
     .receive("ok", state_update)
     .receive("error", (resp) => {
       console.log("Unable to push", resp);
     });
+  channel.on("view", broadcast_update);
 }
 
-export function ch_push(guess) {
+export function ch_push(guess, name, user) {
   channel
-    .push("guess", guess)
+    .push("guess", guess, name, user)
     .receive("ok", state_update)
     .receive("error", (resp) => {
       console.log("Unable to push", resp);
@@ -122,6 +131,15 @@ export function ch_reset() {
 export function ch_login(name, user) {
   channel
     .push("login", { name: name, user: user })
+    .receive("ok", state_update)
+    .receive("error", (resp) => {
+      console.log("Unable to push", resp);
+    });
+}
+
+export function ch_start(name, user) {
+  channel
+    .push("start", { name: name, user: user })
     .receive("ok", state_update)
     .receive("error", (resp) => {
       console.log("Unable to push", resp);

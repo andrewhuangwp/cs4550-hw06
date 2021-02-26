@@ -1,20 +1,20 @@
 Please fill in answers to the questions below:
 
 
-1. What's your name?
-Andrew Huang
+1. What are the names of the members of your team?
+
 
 2. What hostname did you deploy to?
-hw05.normalwebsite.art
+
 
 3. Which parts of this assignment did you have trouble with, if any?
-Still not comfortable with elixir
+
 
 4. What part of your application state is on the server?
-All game logic (validating guess, counting bulls and cows, determining game over) is on server
+
 
 5. What part of your application state, if any, is in the browser?
-Aside from application state returned from server, a separate state for the text input is on browser.
+
 
 And here's a list of tasks for grading comments. Just leave this here:
  - Task 1

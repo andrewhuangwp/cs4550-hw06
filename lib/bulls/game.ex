@@ -1,18 +1,30 @@
 defmodule Bulls.Game do
 
-  def join(game, username) do
-    players = game.players ++ [username]
-    guesses = Map.put_new(game.guesses, username, [])
-    bulls = Map.put_new(game.bulls, username, [])
-    cows = Map.put_new(game.cows, username, [])
-    %{game | players: players, guesses: guesses, bulls: bulls, cows: cows}
+  def start(game) do
+    round = game.round + 1
+    %{game | round: round}
   end
 
-  def join_observer(game, username) do
-    observers = game.observers ++ [username]
-    Map.put(game, :observers, observers)
-    game
+  def join(game, username, player) do
+    cond do
+      # If user has already joined then return state without changes.
+      Enum.member?(game.players, username) || Enum.member?(game.observers, username) ->
+        game
+      game.round > 0 ->
+        observers = game.observers ++ [username]
+        %{game | observers: observers}
+      player == "player" ->
+        players = game.players ++ [username]
+        guesses = Map.put_new(game.guesses, username, [])
+        bulls = Map.put_new(game.bulls, username, [])
+        cows = Map.put_new(game.cows, username, [])
+        %{game | players: players, guesses: guesses, bulls: bulls, cows: cows}
+      true ->
+        observers = game.observers ++ [username]
+        %{game | observers: observers}
+    end
   end
+
 
   # Attribution: Lecture 7 notes from Prof. Tuck's CS4550 section
   def new(name) do
@@ -21,27 +33,42 @@ defmodule Bulls.Game do
       observers: [],
       secret: random_secret([]),
       guesses: %{},
-      gameOver: false,
+      winners: [],
+      round: 0,
       bulls: %{},
       cows: %{},
-      name: name
+      name: name,
+      user: ""
     }
   end
 
   # IF guess is valid, then add to guesses and count bulls and cows.
-  def guess(state, guess) do
-    if validInput?(String.graphemes(guess), []) do
-      %{
+  def guess(state, guess, user) do
+    cond do
+      Enum.member?(state.observers, user) ->
         state
-        | guesses: state.guesses ++ [guess],
-          bulls:
-            state.bulls ++ [findBulls(String.graphemes(state.secret), String.graphemes(guess), 0)],
-          cows:
-            state.cows ++
-              [findCows(String.graphemes(state.secret), String.graphemes(guess), 0, 0)]
-      }
-    else
-      state
+      state.guesses[user] == [] ->
+        if validInput?(String.graphemes(guess), []) do
+          %{
+            state
+            | guesses: Map.put(state.guesses, user, state.guesses[user] ++ [guess]),
+              bulls: Map.put(state.bulls, user, state.bulls[user] ++ [findBulls(String.graphemes(state.secret), String.graphemes(guess), 0)]),
+              cows: Map.put(state.cows, user, state.cows[user] ++ [findCows(String.graphemes(state.secret), String.graphemes(guess), 0, 0)])
+          }
+        else
+          state
+        end
+      Enum.count(state.guesses[user]) == state.round ->
+        state
+      validInput?(String.graphemes(guess), []) ->
+        %{
+          state
+          | guesses: Map.put(state.guesses, user, state.guesses[user] ++ [guess]),
+            bulls: Map.put(state.bulls, user, state.bulls[user] ++ [findBulls(String.graphemes(state.secret), String.graphemes(guess), 0)]),
+            cows: Map.put(state.cows, user, state.cows[user] ++ [findCows(String.graphemes(state.secret), String.graphemes(guess), 0, 0)])
+        }
+      true ->
+        state
     end
   end
 
@@ -98,43 +125,62 @@ defmodule Bulls.Game do
     end
   end
 
-  def view(state) do
-    if Enum.member?(state.guesses, state.secret) do
-      %{
-        secret: "????",
-        players: state.players,
-        observers: state.observers,
-        guesses: state.guesses,
-        gameOver: true,
-        bulls: state.bulls,
-        cows: state.cows,
-        name: state.name
-      }
+  # Evaluate guesses by checking if any player has guessed correctly and add pass if player hasn't guessed yet.
+  def evaluate(state) do
+    guesses = Enum.into(Enum.map(state.guesses, fn {k, v} -> if (length(v) < state.round) do {k, v ++ ["pass"]} else {k,v} end end), %{})
+    bulls = Enum.into(Enum.map(state.bulls, fn {k, v} -> if (length(v) < state.round) do {k, v ++ [0]} else {k,v} end end), %{})
+    cows = Enum.into(Enum.map(state.cows, fn {k, v} -> if (length(v) < state.round) do {k, v ++ [0]} else {k,v} end end), %{})
+    round = state.round + 1
+    winners = findWinners(state.bulls)
+    %{state | guesses: guesses, round: round, bulls: bulls, cows: cows, winners: winners}
+  end
+
+  def findWinners(bulls) do
+    Enum.map(bulls, fn {k, v} -> if (Enum.member?(v, 4)) do k end end)
+    |> Enum.filter(&(&1 != nil))
+  end
+
+  def delete_last(delete_list) do
+    if delete_list == [] do
+      delete_list
     else
-      if Enum.count(state.guesses) == 8 do
-        %{
-          secret: "????",
-          guesses: state.guesses,
-          players: state.players,
-          observers: state.observers,
-          gameOver: true,
-          bulls: state.bulls,
-          cows: state.cows,
-          name: state.name
-        }
-      else
-        %{
-          secret: "????",
-          guesses: state.guesses,
-          players: state.players,
-          observers: state.observers,
-          gameOver: false,
-          bulls: state.bulls,
-          cows: state.cows,
-          name: state.name
-        }
-      end
+      delete_list 
+      |> Enum.reverse()
+      |> tl()
+      |> Enum.reverse()
     end
+  end
+
+  def view(state, user) do
+    guesses = Enum.into(Enum.map(state.guesses, fn {k, v} -> if (length(v) == 0 || length(v) < state.round) do {k, v} else {k, delete_last(v)} end end), %{})
+    bulls = Enum.into(Enum.map(state.bulls, fn {k, v} -> if (length(v) == 0 || length(v) < state.round) do {k, v} else {k, delete_last(v)} end end), %{})
+    cows = Enum.into(Enum.map(state.cows, fn {k, v} -> if (length(v) == 0 || length(v) < state.round) do {k, v} else {k, delete_last(v)} end end), %{})
+    %{
+      secret: "????",
+      players: state.players,
+      observers: state.observers,
+      guesses: guesses,
+      bulls: bulls,
+      cows: cows,
+      name: state.name,
+      round: state.round,
+      winners: state.winners,
+      user: user
+    }
+  end
+
+  def view(state) do
+    %{
+      secret: "????",
+      players: state.players,
+      observers: state.observers,
+      guesses: state.guesses,
+      bulls: state.bulls,
+      cows: state.cows,
+      name: state.name,
+      round: state.round,
+      winners: state.winners
+    }
   end
 
   def validInput?(guess, used) do

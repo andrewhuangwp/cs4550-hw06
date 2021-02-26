@@ -19,21 +19,28 @@ defmodule BullsWeb.GameChannel do
     end
   end
 
+  # Login to game as user.
   @impl true
-  def handle_in("login", %{"user" => user, "name" => name}, socket) do
-    game = GameServer.peek(name)
-    view = GameServer.join(name, user)
+  def handle_in("login", %{"user" => user, "name" => name, "player" => player}, socket) do
+    view = GameServer.join(name, user, player)
+    |> Game.view(user)
+    {:reply, {:ok, view}, socket}
+  end
+
+  # Start the game.
+  @impl true
+  def handle_in("start", %{"name" => name, "user" => user}, socket) do
+    view = GameServer.start_game(name)
+    |> Game.view(user)
+    broadcast(socket, "view", view)
     {:reply, {:ok, view}, socket}
   end
 
   # Handle guess messages.
   @impl true
-  def handle_in("guess", %{"guess" => gs}, socket) do
-    user = socket.assigns[:user]
-    view = socket.assigns[:name]
-    |> GameServer.guess(gs)
-    |> Game.view()
-    broadcast(socket, "view", view)
+  def handle_in("guess", %{"guess" => gs, "name" => name, "user" => user}, socket) do
+    view = GameServer.guess(gs, name, user)
+    |> Game.view(user)
     {:reply, {:ok, view}, socket}
   end
 
@@ -53,7 +60,6 @@ defmodule BullsWeb.GameChannel do
   @impl true
   def handle_out("view", msg, socket) do
     user = socket.assigns[:user]
-    msg = %{msg | name: user}
     push(socket, "view", msg)
     {:noreply, socket}
   end

@@ -1,15 +1,21 @@
 import React, { useState, useEffect } from "react";
-import { ch_join, ch_push, ch_reset, ch_login, ch_join_channel } from "./socket";
+import {
+  ch_join,
+  ch_push,
+  ch_reset,
+  ch_start,
+  ch_join_channel,
+  state_update,
+} from "./socket";
 import socket from "./socket";
 
 function GameOver(props) {
-  let { reset, won, secret } = props;
+  let { reset, winners } = props;
   // Display secret after game is over and corresponding game over message.
   return (
     <div className="GameOver">
       <h1>Game Over!</h1>
-      <h1>{won ? "You won!" : "You lost!"}</h1>
-      <p>{secret ? "The secret number was " + secret : ""}</p>
+      <h1>{"Players " + winners + " won!"}</h1>
       <p>
         <button onClick={reset}>Reset</button>
       </p>
@@ -20,52 +26,76 @@ function GameOver(props) {
 function Login() {
   const [name, setName] = useState("");
   const [user, setUser] = useState("");
-
-  function connect(name, user) {
-    ch_join_channel(name, user);
-  }
+  const [player, setPlayer] = useState("");
 
   return (
     <div className="row">
-      <div className="column">
-        <label>Game name</label>
-        <input type="text"
-               value={name}
-               onChange={(ev) => setName(ev.target.value)} />
+      <h1>Login</h1>
+      <div className="row">
+        <div className="column">
+          <label>Game name</label>
+          <input
+            type="text"
+            value={name}
+            onChange={(ev) => setName(ev.target.value)}
+          />
+        </div>
+        <div className="column">
+          <label>User name</label>
+          <input
+            type="text"
+            value={user}
+            onChange={(ev) => setUser(ev.target.value)}
+          />
+        </div>
+        <div className="column">
+          <label>Player?</label>
+          <input
+            type="checkbox"
+            value="player"
+            onChange={(ev) => setPlayer(ev.target.value)}
+          />
+        </div>
       </div>
-      <div className="column">
-        <label>User name</label>
-        <input type="text"
-               value={user}
-               onChange={(ev) => setUser(ev.target.value)} />
-      </div>
-      <div className="column">
-        <button onClick={() => connect(name, user)}>Join</button>
+      <div>
+        <button onClick={() => ch_join_channel(name, user, player)}>
+          Join
+        </button>
       </div>
     </div>
   );
 }
 
-
 // Referenced React and Hangman code on Prof. Tuck's scratch repo.
-function Play({state}) {
+function Play({ state }) {
   // Controlled input that requires separate useState hook
   const [guess, setGuess] = useState("");
 
-  let { secret, guesses, gameOver, bulls, cows, name } = state;
-
-  let lives = 8 - guesses.length;
+  let {
+    players,
+    observers,
+    secret,
+    guesses,
+    winners,
+    bulls,
+    cows,
+    name,
+    user,
+    round,
+  } = state;
 
   function makeGuess() {
-    ch_push({ guess: guess });
+    ch_push({ guess: guess, name: name, user: user });
     setGuess("");
   }
 
   // Display guesses.
   function guessesTable() {
     let results = [];
-    for (let i = 0; i < guesses.length; i++) {
-      results.push(guesses[i] + " Bulls: " + bulls[i] + " Cows: " + cows[i]);
+    for (var key in guesses) {
+      for (let i = 0; i < guesses[key].length; i++) {
+        results.push("Player: " + key + " Guess: " + guesses[key][i] + " Bulls: " + bulls[key][i] + " Cows: " + cows[key][i]);
+      }
     }
     return (
       <div>
@@ -76,10 +106,27 @@ function Play({state}) {
     );
   }
 
+  // Display players.
+  function playersTable() {
+    let playerList = players.join(", ");
+    return <div>{playerList}</div>;
+  }
+
+  // Display observers.
+  function observersTable() {
+    let observerList = observers.join(", ");
+    return <div>{observerList}</div>;
+  }
+
   // New game.
   function reset() {
     console.log("Resetting to a new game...");
     ch_reset();
+  }
+
+  function start_game() {
+    console.log("Starting game...");
+    ch_start(name, user);
   }
 
   // If user hits enters, makes guess.
@@ -97,8 +144,12 @@ function Play({state}) {
     }
   }
 
-  let body = null,
-    gameover = null;
+  let body = null, gameover = null;
+  let gameFinished = winners.length > 0;
+  // If round is 0, game has not started.
+  let gameStarted = round > 0;
+  // Observers cannot guess
+  let gameObserver = observers.includes(user);
 
   body = (
     <div className="App">
@@ -110,27 +161,49 @@ function Play({state}) {
         <div>{guessesTable()}</div>
       </label>
       <p>Guesses can only be a sequence of four unique digits.</p>
+      <p>Guesses will be evaluated and revealed every 30 seconds.</p>
       <label>
         <input
           type="text"
           value={guess}
           onChange={updateGuess}
           onKeyPress={onKeyPress}
-          disabled={gameOver ? "disabled" : ""}
+          disabled={gameFinished || !gameStarted || gameObserver ? "disabled" : ""}
         />
-        <button onClick={makeGuess} disabled={gameOver ? "disabled" : ""}>
+        <button
+          onClick={makeGuess}
+          disabled={gameFinished || !gameStarted || gameObserver ? "disabled" : ""}
+        >
           Guess
         </button>
       </label>
-      <p>Remaining tries: {8 - guesses.length}</p>
-      <button onClick={reset}>Reset</button>
+      <div>
+        <button
+          className="double-button"
+          onClick={start_game}
+          disabled={gameStarted}
+        >
+          Start
+        </button>
+        <button className="double-button" onClick={reset}>
+          Reset
+        </button>
+      </div>
+      <div>
+        <label>
+          Players:
+          <div>{playersTable()}</div>
+        </label>
+        <label>
+          Observers:
+          <div>{observersTable()}</div>
+        </label>
+      </div>
     </div>
   );
-  if (gameOver && lives > 0) {
-    let secret_num = guesses[guesses.length - 1];
-    gameover = <GameOver reset={reset} won={true} secret={secret_num} />;
-  } else if (lives < 1) {
-    gameover = <GameOver reset={reset} won={false} />;
+  if (gameFinished) {
+    let winnersList = winners.join(", ");
+    gameover = <GameOver reset={reset} winners={winnersList} />;
   }
 
   return (
@@ -147,32 +220,47 @@ function Bulls() {
     observers: [],
     secret: "????",
     guesses: [],
-    gameOver: false,
+    winners: [],
     bulls: [],
     cows: [],
     name: "",
+    round: 0,
+    user: "",
   });
-
-  console.log(state);
-
   useEffect(() => {
     ch_join(setState);
   });
 
+  function return_login() {
+    state_update({
+      players: [],
+      observers: [],
+      secret: "????",
+      guesses: [],
+      winners: [],
+      bulls: [],
+      cows: [],
+      name: "",
+      round: 0,
+      user: "",
+    });
+  }
   let body = null;
 
-  if (state.name === "") {
-    body = <Login />
-  }
-  else {
-    body = <Play state={state} />;
+  if (state.name === "" ) {
+    body = <Login />;
+  } else {
+    body = (
+      <div className="App">
+        <Play state={state} />
+        <button className="return-button" onClick={return_login}>
+          Return to Login
+        </button>
+      </div>
+    );
   }
 
-  return (
-    <div className="container">
-      {body}
-    </div>
-  );
+  return <div className="container">{body}</div>;
 }
 
 export default Bulls;
