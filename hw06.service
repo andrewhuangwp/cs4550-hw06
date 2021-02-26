@@ -6,7 +6,7 @@ Type=simple
 User=hw06
 Group=hw06
 Restart=on-failure
-Environment=MIX_ENV=prod "PORT=4792"
+Environment=MIX_ENV=prod "PORT=4793"
 Environment=LANG=en_US.UTF-8
 
 WorkingDirectory=/home/hw06/cs4550-hw06

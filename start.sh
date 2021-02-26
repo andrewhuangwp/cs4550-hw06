@@ -3,7 +3,7 @@
 # Could factor some of this out into an env.sh
 # to share with deploy.sh
 export MIX_ENV=prod
-export PORT=4792
+export PORT=4793
 
 CFGD=$(readlink -f ~/.config/bulls)
 
